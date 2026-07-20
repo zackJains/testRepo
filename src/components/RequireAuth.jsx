@@ -9,7 +9,7 @@ export default function RequireAuth({ children }) {
   const location = useLocation()
 
   useEffect(() => {
-    if (!isConfigValid) {
+    if (!isConfigValid || !auth) {
       setCheckingAuth(false)
       return
     }
