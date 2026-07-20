@@ -39,6 +39,11 @@ export default function Login() {
   const requireVerification = location.state?.requireVerification
 
   useEffect(() => {
+    if (!isConfigValid || !auth) {
+      setAuthLoaded(true)
+      return
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setAuthUser(user)
       setAuthLoaded(true)
