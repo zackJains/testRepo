@@ -1,7 +1,18 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { FiMail, FiLock, FiArrowRight } from 'react-icons/fi'
 import { HiOutlineUserCircle } from 'react-icons/hi'
+
+const cardMotion = {
+  hidden: { opacity: 0, y: 40, scale: 0.96 },
+  visible: { opacity: 1, y: 0, scale: 1 },
+}
+
+const fieldMotion = {
+  hidden: { opacity: 0, x: -10 },
+  visible: (i) => ({ opacity: 1, x: 0, transition: { delay: 0.2 + i * 0.08 } }),
+}
 
 export default function Login() {
   const navigate = useNavigate()
@@ -23,8 +34,19 @@ export default function Login() {
 
   return (
     <main className="login-screen">
-      <section className="login-card">
-        <header className="login-header">
+      <motion.section
+        className="login-card"
+        initial="hidden"
+        animate="visible"
+        variants={cardMotion}
+        transition={{ duration: 0.55, ease: 'easeOut' }}
+      >
+        <motion.header
+          className="login-header"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
           <div className="login-logo">
             <HiOutlineUserCircle size={32} />
           </div>
@@ -32,10 +54,16 @@ export default function Login() {
             <h1>Bienvenido de nuevo</h1>
             <p>Inicia sesión para continuar</p>
           </div>
-        </header>
+        </motion.header>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <label className="login-field">
+          <motion.label
+            className="login-field"
+            custom={0}
+            initial="hidden"
+            animate="visible"
+            variants={fieldMotion}
+          >
             <span className="login-label">Correo electrónico</span>
             <div className="input-wrap">
               <FiMail className="input-icon" />
@@ -47,9 +75,15 @@ export default function Login() {
                 onChange={(event) => setEmail(event.target.value)}
               />
             </div>
-          </label>
+          </motion.label>
 
-          <label className="login-field">
+          <motion.label
+            className="login-field"
+            custom={1}
+            initial="hidden"
+            animate="visible"
+            variants={fieldMotion}
+          >
             <span className="login-label">Contraseña</span>
             <div className="input-wrap">
               <FiLock className="input-icon" />
@@ -61,9 +95,14 @@ export default function Login() {
                 onChange={(event) => setPassword(event.target.value)}
               />
             </div>
-          </label>
+          </motion.label>
 
-          <div className="login-foot">
+          <motion.div
+            className="login-foot"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.28 }}
+          >
             <label className="remember-label">
               <input
                 type="checkbox"
@@ -72,16 +111,30 @@ export default function Login() {
               />
               Recordarme
             </label>
-          </div>
+          </motion.div>
 
-          {error && <p className="login-error">{error}</p>}
+          {error && (
+            <motion.p
+              className="login-error"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              {error}
+            </motion.p>
+          )}
 
-          <button className="login-button" type="submit">
+          <motion.button
+            className="login-button"
+            type="submit"
+            whileHover={{ y: -2, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+          >
             Iniciar sesión
             <FiArrowRight />
-          </button>
+          </motion.button>
         </form>
-      </section>
+      </motion.section>
     </main>
   )
 }
