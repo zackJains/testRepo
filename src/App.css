@@ -20,6 +20,16 @@
   backdrop-filter: blur(22px);
 }
 
+.register-card {
+  background: rgba(242, 250, 255, 0.94);
+  border-color: rgba(94, 181, 255, 0.28);
+}
+
+.register-card .login-header h1,
+.register-card .login-header p {
+  color: #0d4f8b;
+}
+
 .login-header {
   display: grid;
   gap: 20px;
@@ -109,6 +119,16 @@
   font-size: 14px;
 }
 
+.login-message {
+  margin: 0;
+  color: #27547a;
+  font-size: 14px;
+  background: rgba(222, 241, 255, 0.8);
+  border: 1px solid rgba(72, 150, 214, 0.25);
+  padding: 12px 16px;
+  border-radius: 16px;
+}
+
 .login-button {
   display: inline-flex;
   align-items: center;
@@ -123,12 +143,64 @@
   font-weight: 700;
   background: linear-gradient(135deg, #6f4bff, #4d7cff);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.35s ease;
 }
 
 .login-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 18px 45px rgba(56, 102, 255, 0.24);
+}
+
+.login-card.register-card .login-button {
+  background: linear-gradient(135deg, #ff8f3c, #ffb15f);
+}
+
+.login-card.register-card .login-button:hover {
+  box-shadow: 0 18px 45px rgba(255, 130, 40, 0.32);
+}
+
+.login-message-block {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 10px;
+  background: rgba(242, 250, 255, 0.95);
+  border: 1px solid rgba(94, 181, 255, 0.3);
+  border-radius: 18px;
+}
+
+.verify-button {
+  align-self: start;
+  border: none;
+  background: linear-gradient(135deg, #ff8f3c, #ffb15f);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.verify-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(255, 120, 35, 0.22);
+}
+
+.register-switch {
+  margin-top: 18px;
+  text-align: center;
+}
+
+.register-button {
+  border: none;
+  background: transparent;
+  color: #57507f;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.register-button:hover {
+  color: #3b61ff;
 }
 
 .home-card {
