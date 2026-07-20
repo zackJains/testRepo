@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { signOut } from 'firebase/auth'
+import { auth } from '../firebase'
 
 const homeMotion = {
   hidden: { opacity: 0, y: 24 },
@@ -8,6 +10,14 @@ const homeMotion = {
 
 export default function Home() {
   const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+    } finally {
+      navigate('/')
+    }
+  }
 
   return (
     <motion.main
@@ -23,7 +33,7 @@ export default function Home() {
             <h1>Bienvenido</h1>
             <p>Has iniciado sesión correctamente. Esta es la página de inicio.</p>
           </div>
-          <button className="logout-button" onClick={() => navigate('/')}>Cerrar sesión</button>
+          <button className="logout-button" onClick={handleLogout}>Cerrar sesión</button>
         </div>
       </div>
     </motion.main>
