@@ -95,6 +95,9 @@ export default function ProductDetail() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [dragOffset, setDragOffset] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStartX, setDragStartX] = useState(0)
 
   useEffect(() => {
     if (product) {
@@ -194,6 +197,7 @@ export default function ProductDetail() {
     const currentIndex = product.images.findIndex((imageUrl) => imageUrl === selectedImage)
     const previousIndex = currentIndex > 0 ? currentIndex - 1 : product.images.length - 1
     setSelectedImage(product.images[previousIndex])
+    setDragOffset(0)
   }
 
   const goToNextImage = () => {
@@ -204,6 +208,40 @@ export default function ProductDetail() {
     const currentIndex = product.images.findIndex((imageUrl) => imageUrl === selectedImage)
     const nextIndex = currentIndex >= 0 && currentIndex < product.images.length - 1 ? currentIndex + 1 : 0
     setSelectedImage(product.images[nextIndex])
+    setDragOffset(0)
+  }
+
+  const handleTouchStart = (event) => {
+    if (!product?.images?.length) {
+      return
+    }
+
+    setIsDragging(true)
+    setDragStartX(event.touches[0].clientX)
+  }
+
+  const handleTouchMove = (event) => {
+    if (!isDragging) {
+      return
+    }
+
+    const deltaX = event.touches[0].clientX - dragStartX
+    setDragOffset(deltaX)
+  }
+
+  const handleTouchEnd = () => {
+    if (!isDragging) {
+      return
+    }
+
+    if (dragOffset < -60) {
+      goToNextImage()
+    } else if (dragOffset > 60) {
+      goToPreviousImage()
+    }
+
+    setIsDragging(false)
+    setDragOffset(0)
   }
 
   return (
@@ -322,7 +360,16 @@ export default function ProductDetail() {
             </>
           )}
 
-          <img src={selectedImage} alt={product.name} className="image-preview-image" onClick={(event) => event.stopPropagation()} />
+          <img
+            src={selectedImage}
+            alt={product.name}
+            className={`image-preview-image ${isDragging ? 'dragging' : ''}`}
+            onClick={(event) => event.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ transform: `translateX(${dragOffset}px)` }}
+          />
         </div>
       )}
     </main>
