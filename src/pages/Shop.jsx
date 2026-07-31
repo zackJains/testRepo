@@ -215,9 +215,12 @@ export default function Shop() {
             <FiSearch className="search-icon" />
             <input
               id="product-search"
+              type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar productos..."
+              autoComplete="off"
+              inputMode="search"
             />
             {search && (
               <button type="button" className="clear-search-button" onClick={clearSearch} aria-label="Limpiar búsqueda">
