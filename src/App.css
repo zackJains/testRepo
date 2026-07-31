@@ -2,7 +2,7 @@
 .home-screen,
 .shop-screen,
 .detail-screen {
-  min-height: 100svh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -101,6 +101,9 @@
   outline: none;
   font-size: 16px;
   color: #100f20;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 
 .login-foot {
