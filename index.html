@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/testRepo/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>testproject</title>
+    <script type="module" crossorigin src="/testRepo/assets/index-BUSbhhPH.js"></script>
+    <link rel="stylesheet" crossorigin href="/testRepo/assets/index-B4Yo5GPI.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('p');
+        if (redirect) {
+          const cleanRedirect = redirect.startsWith('/') ? redirect : `/${redirect}`;
+          const basePath = window.location.pathname.replace(/\/$/, '');
+          const targetPath = basePath === '' ? cleanRedirect : `${basePath}${cleanRedirect}`;
+          window.history.replaceState(null, '', targetPath);
+        }
+      })();
+    </script>
+  </body>
+</html>
