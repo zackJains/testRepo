@@ -2,12 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>testproject</title>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('p');
+        if (redirect) {
+          const cleanRedirect = redirect.startsWith('/') ? redirect : `/${redirect}`;
+          const basePath = window.location.pathname.replace(/\/$/, '');
+          const targetPath = basePath === '' ? cleanRedirect : `${basePath}${cleanRedirect}`;
+          window.history.replaceState(null, '', targetPath);
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

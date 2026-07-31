@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting…</title>
+    <script>
+      (function () {
+        const path = window.location.pathname;
+        const search = window.location.search;
+        const hash = window.location.hash;
+        const segments = path.split('/').filter(Boolean);
+        const repoName = segments[0] || '';
+        const basePath = repoName ? `/${repoName}` : '';
+        const appPath = path.replace(new RegExp(`^${basePath}`), '') || '/';
+        const redirectPath = `${appPath}${search}${hash}`;
+        const targetUrl = `${basePath}/?p=${encodeURIComponent(redirectPath)}`;
+        window.location.replace(targetUrl);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting…</p>
+  </body>
+</html>
