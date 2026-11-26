@@ -3,86 +3,15 @@ import { Link, useNavigate } from 'react-router-dom'
 import { FiArrowRight, FiLogOut, FiSearch, FiShoppingBag, FiX } from 'react-icons/fi'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase'
+import { fetchProducts, formatPrice } from '../utils/products'
 
-const API_URL = 'https://creciendojuntos-sma.com:2012/api/producto/consultarProducto'
 const SEARCH_STORAGE_KEY = 'shop-search-query'
 
-function normalizeProduct(item, index) {
-  const productData = item?.producto ?? item
-
-  const id =
-    productData?.idProducto ?? item?.idProducto ?? item?.id ?? item?.productoId ?? item?.codigo ?? item?.sku ?? `${index + 1}`
-  const name = productData?.nombre ?? item?.nombre ?? item?.name ?? item?.producto ?? item?.titulo ?? `Producto ${index + 1}`
-  const description =
-    productData?.descripcion ?? item?.descripcion ?? item?.description ?? item?.detalle ?? item?.observaciones ?? 'Sin descripción disponible.'
-  const price = productData?.precio ?? item?.precio ?? item?.price ?? item?.valor ?? item?.precioVenta ?? null
-  const stock = productData?.stock ?? item?.stock ?? item?.cantidad ?? item?.existencia ?? item?.disponibilidad ?? null
-  const category = productData?.categoria?.nombre ?? item?.categoria?.nombre ?? productData?.categoria ?? item?.categoria ?? item?.category ?? item?.tipo ?? ''
-  const primaryImage = item?.imagenes?.find((imageItem) => imageItem?.principal)?.urlProducto || item?.imagenes?.[0]?.urlProducto
-  const image = primaryImage ?? productData?.imagen ?? item?.imagen ?? item?.image ?? item?.foto ?? item?.urlImagen ?? item?.img ?? ''
-  const brand = productData?.marca ?? item?.marca ?? item?.brand ?? ''
-  const code = item?.colores?.[0]?.sku ?? productData?.codigo ?? item?.codigo ?? item?.code ?? ''
-
-  return {
-    id: String(id),
-    name: String(name),
-    description: String(description),
-    price,
-    stock,
-    category: String(category),
-    image: String(image),
-    brand: String(brand),
-    code: String(code),
-  }
-}
-
-function extractProducts(payload) {
-  if (Array.isArray(payload)) {
-    return payload.map(normalizeProduct)
-  }
-
-  if (payload && typeof payload === 'object') {
-    const candidates = ['productos', 'products', 'data', 'items', 'result', 'response', 'producto', 'product']
-
-    for (const key of candidates) {
-      const value = payload[key]
-      if (Array.isArray(value)) {
-        return value.map(normalizeProduct)
-      }
-
-      if (value && typeof value === 'object') {
-        const nested = extractProducts(value)
-        if (nested.length) {
-          return nested
-        }
-      }
-    }
-
-    const values = Object.values(payload)
-    for (const value of values) {
-      if (Array.isArray(value)) {
-        return value.map(normalizeProduct)
-      }
-    }
-  }
-
-  return []
-}
-
-function formatPrice(value) {
-  if (value === null || value === undefined || value === '') {
-    return 'Precio no disponible'
-  }
-
-  const numericValue = Number(value)
-  if (Number.isNaN(numericValue)) {
-    return String(value)
-  }
-
-  const [integerPart, decimalPart] = String(numericValue.toFixed(0)).split('.')
-  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-
-  return decimalPart ? `$ ${formattedInteger}.${decimalPart}` : `$ ${formattedInteger}`
+function getSearchHaystack(product) {
+  return [product.name, product.description, product.category, product.brand, product.code]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
 }
 
 export default function Shop() {
@@ -112,36 +41,18 @@ export default function Shop() {
 
   useEffect(() => {
     let isMounted = true
-    const controller = new AbortController()
 
     const loadProducts = async () => {
       setIsLoading(true)
       setError('')
 
       try {
-        const response = await fetch(API_URL, {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-          },
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          throw new Error('No se pudieron cargar los productos desde la API.')
-        }
-
-        const payload = await response.json()
-        const normalizedProducts = extractProducts(payload)
+        const normalizedProducts = await fetchProducts()
 
         if (isMounted) {
           setProducts(normalizedProducts)
         }
       } catch (fetchError) {
-        if (controller.signal.aborted) {
-          return
-        }
-
         if (isMounted) {
           setError(fetchError.message || 'Ocurrió un problema al consultar la tienda.')
           setProducts([])
@@ -157,9 +68,13 @@ export default function Shop() {
 
     return () => {
       isMounted = false
-      controller.abort()
     }
   }, [])
+
+  const productsWithHaystack = useMemo(
+    () => products.map((product) => ({ product, haystack: getSearchHaystack(product) })),
+    [products],
+  )
 
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -167,21 +82,10 @@ export default function Shop() {
       return products
     }
 
-    return products.filter((product) => {
-      const haystack = [
-        product.name,
-        product.description,
-        product.category,
-        product.brand,
-        product.code,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-
-      return haystack.includes(query)
-    })
-  }, [products, search])
+    return productsWithHaystack
+      .filter(({ haystack }) => haystack.includes(query))
+      .map(({ product }) => product)
+  }, [products, productsWithHaystack, search])
 
   const handleLogout = async () => {
     try {
@@ -262,7 +166,13 @@ export default function Shop() {
                 <Link className="product-image-link" to={`/shop/${encodeURIComponent(product.id)}`}>
                   <div className="product-image-wrap">
                     {product.image ? (
-                      <img src={product.image} alt={product.name} className="product-image" />
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="product-image"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
                       <div className="product-image-fallback">
                         <FiShoppingBag size={28} />

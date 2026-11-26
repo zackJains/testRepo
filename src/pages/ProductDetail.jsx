@@ -1,92 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { FiArrowLeft, FiChevronLeft, FiChevronRight, FiShoppingBag, FiX } from 'react-icons/fi'
-
-const API_URL = 'https://creciendojuntos-sma.com:2012/api/producto/consultarProducto'
-
-function normalizeProduct(item, index) {
-  const productData = item?.producto ?? item
-
-  const id =
-    productData?.idProducto ?? item?.idProducto ?? item?.id ?? item?.productoId ?? item?.codigo ?? item?.sku ?? `${index + 1}`
-  const name = productData?.nombre ?? item?.nombre ?? item?.name ?? item?.producto ?? item?.titulo ?? `Producto ${index + 1}`
-  const description =
-    productData?.descripcion ?? item?.descripcion ?? item?.description ?? item?.detalle ?? item?.observaciones ?? 'Sin descripción disponible.'
-  const price = productData?.precio ?? item?.precio ?? item?.price ?? item?.valor ?? item?.precioVenta ?? null
-  const stock = productData?.stock ?? item?.stock ?? item?.cantidad ?? item?.existencia ?? item?.disponibilidad ?? null
-  const category = productData?.categoria?.nombre ?? item?.categoria?.nombre ?? productData?.categoria ?? item?.categoria ?? item?.category ?? item?.tipo ?? ''
-  const primaryImage = item?.imagenes?.find((imageItem) => imageItem?.principal)?.urlProducto || item?.imagenes?.[0]?.urlProducto
-  const image = primaryImage ?? productData?.imagen ?? item?.imagen ?? item?.image ?? item?.foto ?? item?.urlImagen ?? item?.img ?? ''
-  const images = Array.isArray(item?.imagenes)
-    ? item.imagenes
-        .map((imageItem) => imageItem?.urlProducto || imageItem?.url || imageItem?.image || imageItem?.src)
-        .filter(Boolean)
-    : []
-  const brand = productData?.marca ?? item?.marca ?? item?.brand ?? ''
-  const code = item?.colores?.[0]?.sku ?? productData?.codigo ?? item?.codigo ?? item?.code ?? ''
-
-  return {
-    id: String(id),
-    name: String(name),
-    description: String(description),
-    price,
-    stock,
-    category: String(category),
-    image: String(image),
-    images,
-    brand: String(brand),
-    code: String(code),
-  }
-}
-
-function extractProducts(payload) {
-  if (Array.isArray(payload)) {
-    return payload.map(normalizeProduct)
-  }
-
-  if (payload && typeof payload === 'object') {
-    const candidates = ['productos', 'products', 'data', 'items', 'result', 'response', 'producto', 'product']
-
-    for (const key of candidates) {
-      const value = payload[key]
-      if (Array.isArray(value)) {
-        return value.map(normalizeProduct)
-      }
-
-      if (value && typeof value === 'object') {
-        const nested = extractProducts(value)
-        if (nested.length) {
-          return nested
-        }
-      }
-    }
-
-    const values = Object.values(payload)
-    for (const value of values) {
-      if (Array.isArray(value)) {
-        return value.map(normalizeProduct)
-      }
-    }
-  }
-
-  return []
-}
-
-function formatPrice(value) {
-  if (value === null || value === undefined || value === '') {
-    return 'Precio no disponible'
-  }
-
-  const numericValue = Number(value)
-  if (Number.isNaN(numericValue)) {
-    return String(value)
-  }
-
-  const [integerPart, decimalPart] = String(numericValue.toFixed(0)).split('.')
-  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-
-  return decimalPart ? `$ ${formattedInteger}.${decimalPart}` : `$ ${formattedInteger}`
-}
+import { fetchProducts, formatPrice } from '../utils/products'
 
 export default function ProductDetail() {
   const { productId } = useParams()
@@ -95,9 +10,9 @@ export default function ProductDetail() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
-  const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [dragStartX, setDragStartX] = useState(0)
+  const previewImageRef = useRef(null)
+  const dragStateRef = useRef({ startX: 0, offset: 0 })
 
   useEffect(() => {
     if (product) {
@@ -136,27 +51,13 @@ export default function ProductDetail() {
 
   useEffect(() => {
     let isMounted = true
-    const controller = new AbortController()
 
     const loadProduct = async () => {
       setIsLoading(true)
       setError('')
 
       try {
-        const response = await fetch(API_URL, {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-          },
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          throw new Error('No fue posible consultar el producto desde la API.')
-        }
-
-        const payload = await response.json()
-        const products = extractProducts(payload)
+        const products = await fetchProducts()
         const selectedProduct = products.find((item) => String(item.id) === String(productId))
 
         if (isMounted) {
@@ -166,10 +67,6 @@ export default function ProductDetail() {
           }
         }
       } catch (fetchError) {
-        if (controller.signal.aborted) {
-          return
-        }
-
         if (isMounted) {
           setError(fetchError.message || 'Ocurrió un problema al cargar el detalle.')
           setProduct(null)
@@ -185,7 +82,6 @@ export default function ProductDetail() {
 
     return () => {
       isMounted = false
-      controller.abort()
     }
   }, [productId])
 
@@ -197,7 +93,6 @@ export default function ProductDetail() {
     const currentIndex = product.images.findIndex((imageUrl) => imageUrl === selectedImage)
     const previousIndex = currentIndex > 0 ? currentIndex - 1 : product.images.length - 1
     setSelectedImage(product.images[previousIndex])
-    setDragOffset(0)
   }
 
   const goToNextImage = () => {
@@ -208,7 +103,6 @@ export default function ProductDetail() {
     const currentIndex = product.images.findIndex((imageUrl) => imageUrl === selectedImage)
     const nextIndex = currentIndex >= 0 && currentIndex < product.images.length - 1 ? currentIndex + 1 : 0
     setSelectedImage(product.images[nextIndex])
-    setDragOffset(0)
   }
 
   const handleTouchStart = (event) => {
@@ -217,16 +111,17 @@ export default function ProductDetail() {
     }
 
     setIsDragging(true)
-    setDragStartX(event.touches[0].clientX)
+    dragStateRef.current = { startX: event.touches[0].clientX, offset: 0 }
   }
 
   const handleTouchMove = (event) => {
-    if (!isDragging) {
+    if (!isDragging || !previewImageRef.current) {
       return
     }
 
-    const deltaX = event.touches[0].clientX - dragStartX
-    setDragOffset(deltaX)
+    const offset = event.touches[0].clientX - dragStateRef.current.startX
+    dragStateRef.current.offset = offset
+    previewImageRef.current.style.transform = `translateX(${offset}px)`
   }
 
   const handleTouchEnd = () => {
@@ -234,14 +129,16 @@ export default function ProductDetail() {
       return
     }
 
-    if (dragOffset < -60) {
+    if (dragStateRef.current.offset < -60) {
       goToNextImage()
-    } else if (dragOffset > 60) {
+    } else if (dragStateRef.current.offset > 60) {
       goToPreviousImage()
     }
 
+    if (previewImageRef.current) {
+      previewImageRef.current.style.transform = ''
+    }
     setIsDragging(false)
-    setDragOffset(0)
   }
 
   return (
@@ -275,7 +172,12 @@ export default function ProductDetail() {
                 aria-label={`Ver imagen ampliada de ${product.name}`}
               >
                 {selectedImage ? (
-                  <img src={selectedImage} alt={product.name} className="detail-image" />
+                  <img
+                    src={selectedImage}
+                    alt={product.name}
+                    className="detail-image"
+                    decoding="async"
+                  />
                 ) : (
                   <div className="product-image-fallback detail-fallback">
                     <FiShoppingBag size={36} />
@@ -292,7 +194,7 @@ export default function ProductDetail() {
                       className={`gallery-thumb ${selectedImage === imageUrl ? 'active' : ''}`}
                       onClick={() => setSelectedImage(imageUrl)}
                     >
-                      <img src={imageUrl} alt={`${product.name} ${index + 1}`} />
+                      <img src={imageUrl} alt={`${product.name} ${index + 1}`} loading="lazy" decoding="async" />
                     </button>
                   ))}
                 </div>
@@ -361,6 +263,7 @@ export default function ProductDetail() {
           )}
 
           <img
+            ref={previewImageRef}
             src={selectedImage}
             alt={product.name}
             className={`image-preview-image ${isDragging ? 'dragging' : ''}`}
@@ -368,7 +271,6 @@ export default function ProductDetail() {
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{ transform: `translateX(${dragOffset}px)` }}
           />
         </div>
       )}
